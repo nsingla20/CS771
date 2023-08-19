@@ -1,8 +1,5 @@
 import numpy as np
-from sklearn.svm import LinearSVC
-from sklearn.linear_model import RidgeClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.linear_model import SGDClassifier
 
 # You are allowed to import any submodules of sklearn as well e.g. sklearn.svm etc
 # You are not allowed to use other libraries such as scipy, keras, tensorflow etc
@@ -63,7 +60,7 @@ def my_fit( Z_train ):
     responses[err] = 1 - responses[err]
 
     ln = challenges.shape[0]
-    model = [[LinearSVC(C=0.5,tol=1e-5,loss='squared_hinge',dual=False,max_iter=100000) for j in range(i)]for i in range(N)]
+    model = [[LogisticRegression(C = 5, tol = 0.001, penalty='l2') for j in range(i)]for i in range(N)]
     l =[[[]for j in range(i)] for i in range(N)]
     for i in range(ln):
         l[p1[i]][p2[i]].append(i)

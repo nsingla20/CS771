@@ -8,8 +8,8 @@ Original file is located at
 """
 
 import numpy as np
-from submit import my_fit
-from submit import my_predict
+from github.CS771.assn1.submit.submit import my_fit
+from github.CS771.assn1.submit.submit import my_predict
 import time as tm
 import pickle
 import os
@@ -35,14 +35,14 @@ for t in range( n_trials ):
 
 	with open( f"model_dump_{t}.pkl", "wb" ) as outfile:
 		pickle.dump( model, outfile, protocol=pickle.HIGHEST_PROTOCOL )
-	
+
 	m_size += os.path.getsize( f"model_dump_{t}.pkl" )
-	
+
 	tic = tm.perf_counter()
 	pred = my_predict( Z_tst[:, :-1], model )
 	toc = tm.perf_counter()
 	t_test += toc - tic
-	
+
 	acc += np.average( Z_tst[ :, -1 ] == pred )
 
 t_train /= n_trials

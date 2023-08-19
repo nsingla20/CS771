@@ -40,17 +40,29 @@ def prepare(p1,p2,responses):
             p1[i] = p2[i]
             p2[i] = tmp
 
-def gog(ar,i,j,m):
-    l = [False for _ in range(0,i-j+1)]
-    l[0] = True
-    for k in range(1,i-j+1):
-        for jj in range(j,k+j):
-            if k==i-j and jj == j:
-                continue
-            if (ar[k+j][jj] == m) and l[jj-j]:
-                l[k] = True
-                break
-    return l[i-j]
+# def gog(ar,i,j,m):
+#     l = [0 for _ in range(0,i-j+1)]
+#     l[0]=1
+#     for k in range(1,i-j+1):
+#         for jj in range(j,k+j):
+#             # if k==i-j and jj == j:
+#             #     continue
+#             if (ar[k+j][jj] == m):
+#                 l[k] += l[jj-j]
+#     return l[i-j]
+def gog(ar,i,j,m,d):
+    if i==j:
+        return True
+    for k in range(N):
+        if d[k]:
+            continue
+        if ar[i][k] == m:
+            d[k]=True
+            if gog(ar,k,j,m,d):
+                return True
+            d[k]=False
+    return False
+
 
 def get_unique(records_array):
     idx_sort = np.argsort(records_array,axis=0)
@@ -66,27 +78,32 @@ def get_unique(records_array):
     return vals,res
 
 def find_path(ar,i,j):
-    if i-j < 2:
-        return -1
-    ans = 0
-    a = gog(ar,i,j,False)
-    b = gog(ar,i,j,True)
+    # if i-j < 2:
+    #     return -1,-1,ar[i][j]
+    d=[False for ii in range(N)]
+    d[i]=True
+    a = gog(ar,i,j,1,d)
+    b = gog(ar,i,j,0,d)
+    # print(a,b)
+    ans = ar[i][j]
     if a:
         if b:
-            ans = 2
+            print(i,j)
+            ans=2
         else:
-            ans = 0
+            ans = 1
     else:
         if b:
-            ans = 1
+            ans =0
         else:
-            ans = -1
+            # print(i,j)
+            ans =-1
     return ans
 
-def add_predict(challenges,i,j,model):
+def add_predict(challenges,i,j,model,an):
     l=[]
     ln = challenges.shape[0]
-    arr = [[model[i][j].predict(challenges) if j<i else [0]*ln for j in range(N)] for i in range(N)]
+    arr = [[model[ii][jj].predict(challenges) if jj<ii else np.invert(model[jj][ii].predict(challenges)) if ii !=jj else [0]*ln for jj in range(N)] for ii in range(N)]
     arr = np.array(arr)
     arr = arr.astype(bool)
     for k in range(ln):
@@ -94,17 +111,16 @@ def add_predict(challenges,i,j,model):
         # ar = np.squeeze(ar)
         # print(ar.shape)
         ans = find_path(ar,i,j)
-        # print(ans)
-        if ans > -1 and ans < 2:
-            l.append(bool(ans))
+        if ans>-1 and ans <2:
+            ans=bool(ans)
         else:
-            l.append(ar[i][j])
+            ans=ar[i][j]
+        if an[k] != ans:
+            print(i,j)
+        # print(ans)
+        l.append(bool(ans))
+    print('done')
     return l
-
-def get_comp(ar):
-    l=np.full((N,),-1)
-    
-
 
 def add_multi_predict(challenges,p1,p2,responses):
     challenges = challenges.astype(str)
@@ -172,6 +188,7 @@ def my_fit( Z_train ):
     # responses = np.append(responses,nw_rs,axis=0)
 
     ln = challenges.shape[0]
+    print(ln)
     model = [[LogisticRegression() for j in range(i)]for i in range(N)]
     l =[[[]for j in range(i)] for i in range(N)]
     for i in range(ln):
@@ -179,6 +196,7 @@ def my_fit( Z_train ):
     for i in range(N):
         for j in range(i):
             if l[i][j]:
+                print(i,j,len(l[i][j]))
                 model[i][j].fit(challenges[l[i][j]],responses[l[i][j]])
             else:
                 print(i)
@@ -197,6 +215,7 @@ def my_predict( X_tst, model ):
     ln = X_tst.shape[0]
     X_tst = X_tst.astype(bool)
     challenges = createFeatures(X_tst[:,:R])
+    an = X_tst[:,-1]
     p1,p2 = mux_inputs(X_tst)
     l =[[[]for j in range(N)] for i in range(N)]
     err = []
@@ -204,12 +223,14 @@ def my_predict( X_tst, model ):
         if p1[i]-p2[i]<0:
             err.append(i)
         l[max(p1[i],p2[i])][min(p1[i],p2[i])].append(i)
+
+    an[err] = 1- an[err]
     pred = np.empty(shape=(ln,))
     for i in range(N):
         for j in range(i):
             if l[i][j]:
-                ans = model[i][j].predict(challenges[l[i][j]])
-                # ans = add_predict(challenges[l[i][j]],i,j,model)
+                # ans = model[i][j].predict(challenges[l[i][j]])
+                ans = add_predict(challenges[l[i][j]],i,j,model,an[l[i][j]])
                 pred[l[i][j]] = ans
     pred[err] = 1- pred[err]
     # print(pred)
@@ -221,6 +242,6 @@ if __name__ == "__main__":
 
     model=my_fit(train_data)
 
-    pred = my_predict(test_data[:, :-1],model)
+    # pred = my_predict(test_data,model)
 
-    print(np.average(test_data[:,-1] == pred))
+    # print(np.average(test_data[:,-1] == pred))
